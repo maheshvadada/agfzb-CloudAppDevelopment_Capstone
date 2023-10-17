@@ -5,31 +5,51 @@
 const { CloudantV1 } = require('@ibm-cloud/cloudant');
 const { IamAuthenticator } = require('ibm-cloud-sdk-core');
 
+// function main(params) {
+
+//     const authenticator = new IamAuthenticator({ apikey: params.IAM_API_KEY })
+//     const cloudant = CloudantV1.newInstance({
+//       authenticator: authenticator
+//     });
+//     cloudant.setServiceUrl(params.COUCH_URL);
+//     console.log(cloudant);
+
+//     let dbListPromise = getDbs(cloudant);
+//     return dbListPromise;
+// }
 function main(params) {
-
-    const authenticator = new IamAuthenticator({ apikey: params.IAM_API_KEY })
     const cloudant = CloudantV1.newInstance({
-      authenticator: authenticator
+        url: params.COUCH_URL,
+        plugins: { iamauth: { iamApiKey: params.IAM_API_KEY } }
     });
-    cloudant.setServiceUrl(params.COUCH_URL);
-
     let dbListPromise = getDbs(cloudant);
     return dbListPromise;
 }
 
-function getDbs(cloudant) {
-     return new Promise((resolve, reject) => {
-         cloudant.getAllDbs()
-             .then(body => {
-                 resolve({ dbs: body.result });
-             })
-             .catch(err => {
-                  console.log(err);
-                 reject({ err: err });
-             });
-     });
- }
- 
+// function getDbs(cloudant) {
+//      return new Promise((resolve, reject) => {
+//          cloudant.getAllDbs()
+//              .then(body => {
+//                  resolve({ dbs: body.result });
+//              })
+//              .catch(err => {
+//                   console.log(err);
+//                  reject({ err: err });
+//              });
+//      });
+//  }
+ function getDbs(cloudant) {
+    return new Promise((resolve, reject) => {
+        cloudant.db.list()
+            .then(body => {
+                resolve({ dbs: body });
+            })
+            .catch(err => {
+                reject({ err: err });
+            });
+    });
+}
+
  
  /*
  Sample implementation to get the records in a db based on a selector. If selector is empty, it returns all records. 
@@ -64,3 +84,7 @@ function getDbs(cloudant) {
              });
          })
  }
+ main({
+    "COUCH_URL": "https://1223dee1-c3da-4e4a-84db-40df919d7208-bluemix.cloudantnosqldb.appdomain.cloud",
+    "IAM_API_KEY": "Av_BspR8cYuy4Ud9Aek4I6geXIuQ2mwHoeFEXsC0nfoY"
+})
