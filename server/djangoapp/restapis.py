@@ -1,6 +1,7 @@
 import requests
 import json
 import os.path
+import numpy
 from .models import CarDealer, DealerReview
 from requests.auth import HTTPBasicAuth
 
@@ -10,30 +11,32 @@ BASE = os.path.dirname(os.path.abspath(__file__))
 # e.g., response = requests.get(url, params=params, headers={'Content-Type': 'application/json'},
 #                                     auth=HTTPBasicAuth('apikey', api_key))
 def get_request(url, **kwargs):
-    print(kwargs)
-    try:
-        print("GET from {} ".format(url))
-        # Call get method of requests library with URL and parameters
-        # response = requests.get(url, headers={'Content-Type': 'application/json'},
-        #                             params=kwargs)
-    except:
-        # If any error occurs
-        print("Network exception occurred")
-    # status_code = response.status_code
-    # print("With status {} ".format(status_code))
-    # json_data = json.loads(response.text)
-    if url == "dealer-get":
-        with open(os.path.join(BASE,'data/dealerships.json')) as file:
-            json_data = json.load(file)
-    if url == "review-get":
-        with open(os.path.join(BASE,'data/reviews.json')) as file:
-            json_data = json.load(file)
-    return json_data
+    api_key = 0
+
+    if api_key:
+       params = dict()
+       params["text"] = kwargs["text"]
+       params["version"] = kwargs["version"]
+       params["features"] = kwargs["features"]
+       params["return_analyzed_text"] = kwargs["return_analyzed_text"]
+       response = requests.get(url, params=params, headers={'Content-Type': 'application/json'},
+                                    auth=HTTPBasicAuth('apikey', api_key))
+       return response
+    else:
+        if url == "dealer-get":
+            with open(os.path.join(BASE,'data/dealerships.json')) as file:
+                json_data = json.load(file)
+        if url == "review-get":
+            with open(os.path.join(BASE,'data/reviews.json')) as file:
+                json_data = json.load(file)
+        return json_data
 
 
 # Create a `post_request` to make HTTP POST requests
 # e.g., response = requests.post(url, params=kwargs, json=payload)
-
+def post_request(url, json_payload, **kwargs):
+    # requests.post(url, params=kwargs, json=json_payload)
+    return 'True'
 
 # Create a get_dealers_from_cf method to get dealers from a cloud function
 # def get_dealers_from_cf(url, **kwargs):
@@ -65,24 +68,41 @@ def get_dealers_from_cf(url, **kwargs):
 # def get_dealer_by_id_from_cf(url, dealerId):
 # - Call get_request() with specified arguments
 # - Parse JSON results into a DealerView object list
+def get_dealer_by_id_from_cf(dealerId):
+    url = "dealer-get"
+    results = {}
+    # Call get_request with a URL parameter
+    json_result = get_request(url)
+    if json_result:
+        # Get the row list in JSON as dealers
+        dealers = json_result["dealerships"]
+        # For each dealer object
+        for dealer in dealers:
+            # Get its content in `doc` object
+            dealer_doc = dealer
+            if dealer_doc["id"] == dealerId:
+                results = dealer_doc
+    return results
+
 def get_dealer_reviews_from_cf(url, dealerId):
     results = []
     # Call get_request with a URL parameter
     json_result = get_request(url, dealerId=dealerId)
     if json_result:
         # Get the row list in JSON as dealers
-        dealers = json_result["reviews"]
+        reviews = json_result["reviews"]
         # For each dealer object
-        for dealer in dealers:
-            dealer_doc = dealer
-            print(dealer_doc)
-            if dealer_doc["dealership"] == dealerId:                
-                dealer_obj = DealerReview(dealership=dealer_doc["dealership"], name=dealer_doc["name"], purchase=dealer_doc["purchase"],
-                                   review=dealer_doc["review"], purchase_date=dealer_doc["purchase_date"], car_make=dealer_doc["car_make"],
-                                   car_model=dealer_doc["car_model"],car_year=dealer_doc["car_year"],
-                                   sentiment='positive', id=dealer_doc["id"])
-                results.append(dealer_obj)
+        for review in reviews:
+            review_obj = review
+            review_obj["sentiment"] = analyze_review_sentiments(review_obj["review"])
+            review_obj["dealership_full_name"] = get_dealer_by_id(dealerId)
+            if review_obj["dealership"] == dealerId:                
+                review_obj = DealerReview( review=review_obj["review"], car_make=review_obj["car_make"],
+                                   car_model=review_obj["car_model"],car_year=review_obj["car_year"],
+                                   sentiment=review_obj["sentiment"], id=review_obj["id"], dealership_full_name = review_obj["dealership_full_name"])
+                results.append(review_obj)
 
+    print(results)
     return results
 
 
@@ -90,6 +110,11 @@ def get_dealer_reviews_from_cf(url, dealerId):
 # def analyze_review_sentiments(text):
 # - Call get_request() with specified arguments
 # - Get the returned sentiment label such as Positive or Negative
+def analyze_review_sentiments(text):
+    return 'positive'
 
+def get_dealer_by_id(dealerId):
+    result = get_dealer_by_id_from_cf(dealerId)
+    return result["full_name"]
 
 
