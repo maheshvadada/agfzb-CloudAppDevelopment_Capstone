@@ -26,6 +26,9 @@
                     </li>
                 </ul> -->
                 <ul class="nav navbar-nav navbar-right">
+                    <li>
+                        <a href="{% url 'djangoapp:add_review' reviews_list.0.dealer_id %}">Add Review</a>
+                    </li>
                     {% if user.is_authenticated %}
                     <li>
                         <a class="btn btn-link" href="#">{{ user.first_name }}({{ user.username }})</a>

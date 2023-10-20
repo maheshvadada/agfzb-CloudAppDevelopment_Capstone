@@ -1,7 +1,6 @@
 import requests
 import json
 import os.path
-import numpy
 from .models import CarDealer, DealerReview
 from requests.auth import HTTPBasicAuth
 
@@ -96,13 +95,13 @@ def get_dealer_reviews_from_cf(url, dealerId):
             review_obj = review
             review_obj["sentiment"] = analyze_review_sentiments(review_obj["review"])
             review_obj["dealership_full_name"] = get_dealer_by_id(dealerId)
+            review_obj["dealer_id"] = dealerId
             if review_obj["dealership"] == dealerId:                
                 review_obj = DealerReview( review=review_obj["review"], car_make=review_obj["car_make"],
                                    car_model=review_obj["car_model"],car_year=review_obj["car_year"],
-                                   sentiment=review_obj["sentiment"], id=review_obj["id"], dealership_full_name = review_obj["dealership_full_name"])
+                                   sentiment=review_obj["sentiment"], id=review_obj["id"],
+                                   dealership_full_name = review_obj["dealership_full_name"], dealer_id = review_obj["dealer_id"])
                 results.append(review_obj)
-
-    print(results)
     return results
 
 
